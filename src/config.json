@@ -1,0 +1,16 @@
+{
+    "path_ttc4900": "Data/TTC_4900/",
+    "path_tr_news": "Data/TR_News/",
+    "path_interpress": "Data/Interpress/",
+    "path_model_ttc4900": "Models/bert_text_classification_fine_tuned_ttc4900",
+    "path_model_tr_news": "Models/bert_text_classification_fine_tuned_tr_news",
+    "path_shap": "Data/SHAP/",
+    "path_ig": "Data/IG/",
+    "threshold": 0.6,
+    "device": "cuda",
+    "pipeline_parameters": {
+        "padding": "max_length",
+        "truncation": true,
+        "batch_size": 16
+    }
+}
