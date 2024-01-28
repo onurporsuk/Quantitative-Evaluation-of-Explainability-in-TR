@@ -36,6 +36,7 @@ def predict(text, model, tokenizer,
             top_k=None, is_tokenized=False, 
             device='cuda', 
             mode='pipeline', text_pipeline=None, pipeline_parameters=None,
+            max_length=512,
             multi_sample=False,
             id2label=None):
 
@@ -77,13 +78,15 @@ def predict(text, model, tokenizer,
 
             for result in text_pipeline(KeyDataset(text, 'text'),
                                         top_k=top_k,
-                                        **pipeline_parameters):
+                                        **pipeline_parameters,
+                                        max_length=max_length):
                 results.append(result)
-
+            
         else:
             results = text_pipeline(text,
                                     top_k=top_k,
-                                    **pipeline_parameters)
+                                    **pipeline_parameters,
+                                    max_length=max_length)
         
         return results if multi_sample else results[0]
         
@@ -106,6 +109,8 @@ def evaluate_classification(full_text_dataset, parameter_set, label2id):
     metrics = classification_report(y_true, y_pred)
     print("\n\nClassification Report:")
     print(metrics)
+
+    clear_gpu_memory()
 
     return full_text_preds
 
@@ -200,7 +205,7 @@ def evaluate_explanations(results_df, ylim):
 
 
 
-def analyze_dataset(dataset, figsize_bar, figsize_char, figsize_word, ylim_char, max_val_pos_char, ylim_word, max_val_pos_word, color, name):
+def analyze_dataset(dataset, figsize_bar, figsize_char, figsize_word, ylim_char, max_val_pos_char, ylim_word, max_val_pos_word, color, name, rotation=0):
 
     print(f"\nAnalysis of {name} Dataset\n")
     
@@ -210,7 +215,7 @@ def analyze_dataset(dataset, figsize_bar, figsize_char, figsize_word, ylim_char,
     dataset['label'].value_counts().plot(kind='bar', color=color)
     plt.xlabel('Categories')
     plt.ylabel('Count')
-    plt.xticks(rotation=0)
+    plt.xticks(rotation=rotation)
     plt.tight_layout()
     plt.show()
 

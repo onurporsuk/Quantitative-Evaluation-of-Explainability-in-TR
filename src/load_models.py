@@ -1,11 +1,11 @@
-from transformers import pipeline, BertForSequenceClassification, BertTokenizerFast, AutoConfig
+from transformers import pipeline, AutoModelForSequenceClassification, AutoTokenizer, AutoConfig
 
 
-def prepare_models(path_model, device):
+def prepare_models(path_model, device, print_classes=False):
     
-    model = BertForSequenceClassification.from_pretrained(path_model).to(device)
-    tokenizer = BertTokenizerFast.from_pretrained(path_model, use_fast=True)
+    model = AutoModelForSequenceClassification.from_pretrained(path_model).to(device)
     config = AutoConfig.from_pretrained(path_model)
+    tokenizer = AutoTokenizer.from_pretrained(path_model, use_fast=True)
     
     model = model.eval()
     
@@ -19,8 +19,10 @@ def prepare_models(path_model, device):
     label2id = config.label2id
     id2label = config.id2label
 
-    print(f"\nLoaded model '{path_model.split('/')[-1]}' has following classes:\n")
-    for key, value in id2label.items():
-        print(f'{key}: {value}')
+    print(f"\n'{path_model.split('/')[-1]}' is loaded.")
+    
+    if print_classes:
+        for key, value in id2label.items():
+            print(f'{key}: {value}')
 
     return model, tokenizer, config, pipeline_text, label2id, id2label
