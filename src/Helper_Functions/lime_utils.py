@@ -24,7 +24,7 @@ def create_predictor_function(model, tokenizer, device):
 
 
 
-def apply_lime(files_path, samples, lime_explainer, predictor, model, tokenizer, file_name, only_load=True):
+def apply_lime(files_path, samples, lime_explainer, predictor, model, tokenizer, file_name, num_features=128, only_load=True):
     
     if only_load:
         lime_values, exp_objects = pickle.load(open(files_path + f"{file_name}.pkl", 'rb'))
@@ -39,7 +39,7 @@ def apply_lime(files_path, samples, lime_explainer, predictor, model, tokenizer,
                 # Create a wrapper function for predictor with only the sample
                 predictor_wrapper = lambda x, model=model, tokenizer=tokenizer, predictor=predictor: predictor(x)
                 
-                exp = lime_explainer.explain_instance(sample, predictor_wrapper, num_features=128, num_samples=500)
+                exp = lime_explainer.explain_instance(sample, predictor_wrapper, num_features=num_features, num_samples=150)
 
                 predicted_class_label = np.argmax(np.array(exp.predict_proba))
                 lime_values_df = pd.DataFrame(exp.as_list(), columns=['Token', str(predicted_class_label)])

@@ -172,22 +172,24 @@ def compare_probs(full_text_dataset, full_text_preds, top_tokens, top_k,
 
 
 
-def evaluate_explanations(results_df, ylim):
+def evaluate_explanations(results_df, ylim=(-0.005, 0.005)):
 
-    print("\nExplanations Contribution Score (ECS)          : ", round(results_df['Pred Prob - Top Tokens'].mean(), 3))
+    ecs = round(results_df['Pred Prob - Top Tokens'].mean(), 3)
+
+    print("\nExplanations Contribution Score (ECS)          : ", ecs)
 
     results_df['Relative Change'] = (results_df['Pred Prob - Top Tokens'] - results_df['Pred Prob - Full Text'])
 
     # Filter samples with positive relative change
     positive_changes = results_df[results_df['Relative Change'] > 0]
-    positive_orc = positive_changes['Relative Change'].mean() * 100
+    positive_orc = round(positive_changes['Relative Change'].mean() * 100, 3)
     
     # Filter samples with negative relative change
     negative_changes = results_df[results_df['Relative Change'] < 0]
-    negative_orc = negative_changes['Relative Change'].mean() * 100
+    negative_orc = round(negative_changes['Relative Change'].mean() * 100, 3)
     
-    print(f"Overall Relative Change (ORC) positive changes :  {positive_orc:.4f} %")
-    print(f"Overall Relative Change (ORC) negative changes : {negative_orc:.4f} %")
+    print(f"Overall Relative Change (ORC) positive changes :  {positive_orc} %")
+    print(f"Overall Relative Change (ORC) negative changes : {negative_orc} %")
 
     plt.figure(figsize=(10, 6))
     plt.bar(positive_changes.index, positive_changes['Relative Change'], color='blue', alpha=0.7, label='Positive Changes')
@@ -201,7 +203,7 @@ def evaluate_explanations(results_df, ylim):
     plt.tight_layout()
     plt.show()
 
-    return None
+    return ecs, positive_orc, negative_orc
 
 
 

@@ -1,5 +1,9 @@
 import torch
 from captum.attr import visualization as viz
+from tqdm.notebook import tqdm
+import pandas as pd
+import pickle
+
 
 
 def create_model_output_function(model):
@@ -13,12 +17,11 @@ def create_model_output_function(model):
 
 def construct_input_and_baseline(text, tokenizer, device):
 
-    max_length = 510
     baseline_token_id = tokenizer.pad_token_id 
     sep_token_id = tokenizer.sep_token_id 
     cls_token_id = tokenizer.cls_token_id 
 
-    text_ids = tokenizer.encode(text, max_length=max_length, truncation=True, add_special_tokens=False)
+    text_ids = tokenizer.encode(text, max_length=128, truncation=True, add_special_tokens=False)
    
     input_ids = [cls_token_id] + text_ids + [sep_token_id]
     token_list = tokenizer.convert_ids_to_tokens(input_ids)
@@ -71,7 +74,6 @@ def apply_ig(files_path, samples, lig, model, tokenizer, file_name, device, only
         visualizations = []
         
         with torch.no_grad():
-            
             for sample in tqdm(samples):
             
                 token_attributions, score_vis = interpret_text(sample['text'], lig, model, tokenizer, int(sample['label']), device)

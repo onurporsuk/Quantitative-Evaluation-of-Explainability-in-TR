@@ -12,9 +12,12 @@
     "path_tbt_model_interpress": "Models/turkishbertweet_text_classification_fine_tuned_interpress",
     "path_tbt_model_tc32": "Models/turkishbertweet_text_classification_fine_tuned_tc32",
     "path_shap": "Data/Exp_SHAP/",
-    "path_ig": "Data/Exp_IG/",
     "path_lime": "Data/Exp_LIME/",
+    "path_ig": "Data/Exp_IG/",
+    "path_rand": "Data/Exp_Rand/",
+    "path_prob": "Data/Exp_Prob/",
     "thresholds": [0.5, 0.6, 0.7],
+    "only_load": true,
     "device": "cuda",
     "pipeline_parameters": {
         "padding": "max_length",
