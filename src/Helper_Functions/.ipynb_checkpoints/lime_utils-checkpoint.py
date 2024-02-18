@@ -10,7 +10,7 @@ def create_predictor_function(model, tokenizer, device):
     
     def predictor(sample):
         
-        inputs = tokenizer(sample, return_tensors="pt", padding=True, truncation=True, max_length=128)
+        inputs = tokenizer(sample, max_length=128, padding='max_length', truncation=True, return_tensors="pt")
         inputs = {key: value.to(device) for key, value in inputs.items()}
     
         outputs = model(**inputs)
@@ -21,7 +21,6 @@ def create_predictor_function(model, tokenizer, device):
         return probas
     
     return predictor
-
 
 
 def apply_lime(files_path, samples, lime_explainer, predictor, model, tokenizer, file_name, num_features=128, only_load=True):

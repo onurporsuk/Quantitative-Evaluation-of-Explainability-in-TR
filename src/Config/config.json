@@ -16,6 +16,7 @@
     "path_ig": "Data/Exp_IG/",
     "path_rand": "Data/Exp_Rand/",
     "path_prob": "Data/Exp_Prob/",
+    "path_reports": "Reports/",
     "thresholds": [0.5, 0.6, 0.7],
     "only_load": true,
     "device": "cuda",

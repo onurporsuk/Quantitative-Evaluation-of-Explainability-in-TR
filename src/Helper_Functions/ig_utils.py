@@ -5,7 +5,6 @@ import pandas as pd
 import pickle
 
 
-
 def create_model_output_function(model):
     
     def model_output(inputs):
@@ -14,14 +13,13 @@ def create_model_output_function(model):
     return model_output
 
 
-
 def construct_input_and_baseline(text, tokenizer, device):
 
     baseline_token_id = tokenizer.pad_token_id 
     sep_token_id = tokenizer.sep_token_id 
     cls_token_id = tokenizer.cls_token_id 
 
-    text_ids = tokenizer.encode(text, max_length=128, truncation=True, add_special_tokens=False)
+    text_ids = tokenizer.encode(text, max_length=128, padding='max_length', truncation=True, add_special_tokens=False)
    
     input_ids = [cls_token_id] + text_ids + [sep_token_id]
     token_list = tokenizer.convert_ids_to_tokens(input_ids)
@@ -32,7 +30,6 @@ def construct_input_and_baseline(text, tokenizer, device):
     trimmed_tokens = [token if not token.startswith("##") else token[2:] for token in token_list]
 
     return torch.tensor([input_ids], device=device), torch.tensor([baseline_input_ids], device=device), trimmed_tokens
-
 
 
 def interpret_text(text, lig, model, tokenizer, true_class, device):
@@ -61,7 +58,6 @@ def interpret_text(text, lig, model, tokenizer, true_class, device):
     )
 
     return token_attributions, score_vis
-
 
 
 def apply_ig(files_path, samples, lig, model, tokenizer, file_name, device, only_load=True):

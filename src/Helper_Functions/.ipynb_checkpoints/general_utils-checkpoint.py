@@ -5,10 +5,9 @@ from datasets import Dataset
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 import torch
 from transformers.pipelines.pt_utils import KeyDataset
-
 
 
 def load_hyperparameters(file_path):
@@ -17,7 +16,6 @@ def load_hyperparameters(file_path):
         config = json.load(file)
         
     return config
-
 
 
 def get_model_details(model_config, model_tokenizer):
@@ -31,44 +29,46 @@ def get_model_details(model_config, model_tokenizer):
     return None
 
 
-
 def predict(text, model, tokenizer, 
-            top_k=None, is_tokenized=False, 
-            device='cuda', 
+            top_k=None, is_tokenized=True, 
             mode='pipeline', text_pipeline=None, pipeline_parameters=None,
             max_length=128,
-            multi_sample=False,
-            id2label=None):
+            multi_sample=True,
+            id2label=None,
+            device=None):
 
     if not isinstance(text, list) and not isinstance(text, Dataset):
         text = [text]
 
-    if mode == 'custom':
-        if not is_tokenized:
-            inputs = tokenizer(text, 
-                               padding='max_length',
-                               truncation=True, 
-                               return_tensors="pt").to(device)
-        else:
-            input_ids = torch.tensor([tokenizer.convert_tokens_to_ids(text)])
+    if mode == 'custom' and is_tokenized and multi_sample:
+        results = []
+
+        for sample in text:
+
+            # To prevent exceeding specified max length of model
+            sample['text'] = sample['text'][:max_length]
+          
+            input_ids = torch.tensor([tokenizer.convert_tokens_to_ids(sample['text'])])
             inputs = {"input_ids": input_ids.to(device)}
 
-        with torch.no_grad():
-            logits = model(**inputs)[0]
+            with torch.no_grad():
+                logits = model(**inputs)[0]
+    
+            probabilities = torch.softmax(logits, dim=1).squeeze()
+    
+            sorted_probs, sorted_indices = torch.sort(probabilities, descending=True)
+    
+            if top_k is not None:
+                sorted_probs = sorted_probs[:top_k]
+                sorted_indices = sorted_indices[:top_k]
+    
+            sample_result = []
+            for prob, index in zip(sorted_probs.tolist(), sorted_indices.tolist()):
+                class_name = id2label[index]
+                sample_result.append((class_name, prob))
 
-        probabilities = torch.softmax(logits, dim=1).squeeze()
-
-        sorted_probs, sorted_indices = torch.sort(probabilities, descending=True)
-
-        if top_k is not None:
-            sorted_probs = sorted_probs[:top_k]
-            sorted_indices = sorted_indices[:top_k]
-
-        results = []
-        for prob, index in zip(sorted_probs.tolist(), sorted_indices.tolist()):
-            class_name = id2label[index]
-            results.append((class_name, prob))
-
+            results.append(sample_result)
+    
         return results
         
     elif mode == 'pipeline':
@@ -76,23 +76,16 @@ def predict(text, model, tokenizer,
         if multi_sample:
             results = []
 
-            for result in text_pipeline(KeyDataset(text, 'text'),
-                                        top_k=top_k,
-                                        **pipeline_parameters,
-                                        max_length=max_length):
+            for result in text_pipeline(KeyDataset(text, 'text'), top_k=top_k, **pipeline_parameters, max_length=max_length):
                 results.append(result)
             
         else:
-            results = text_pipeline(text,
-                                    top_k=top_k,
-                                    **pipeline_parameters,
-                                    max_length=max_length)
+            results = text_pipeline(text, top_k=top_k, **pipeline_parameters, max_length=max_length)
         
         return results if multi_sample else results[0]
         
     else:
         raise ValueError("Invalid mode. Please choose either 'custom' or 'pipeline'.")
-
 
 
 def evaluate_classification(full_text_dataset, parameter_set, label2id):
@@ -115,81 +108,91 @@ def evaluate_classification(full_text_dataset, parameter_set, label2id):
     return full_text_preds
 
 
-
-def apply_thresholding(top_tokens_values, tokenizer, threshold):
+def apply_thresholding(top_tokens_samples, tokenizer, threshold):
 
     # Extract top tokens whose values are above threshold
     
     top_tokens_thresholded = []
 
-    for top_tokens_sample in top_tokens_values:
+    for top_tokens_sample in top_tokens_samples:
 
         label = top_tokens_sample.columns[1]
   
         quantile = top_tokens_sample.iloc[:, 1].quantile(threshold)
         top_tokens_sample = top_tokens_sample[top_tokens_sample.iloc[:, 1] >= quantile]['Token']
-   
-        # Decode top tokens to generate a full string 
-        token_ids = tokenizer.convert_tokens_to_ids(top_tokens_sample)
-        decoded_text = tokenizer.decode(token_ids, skip_special_tokens=True)
-    
+        
         top_tokens_thresholded.append({
-            'text': decoded_text,
+            'text': top_tokens_sample,
             'label': label
         })
 
     return Dataset.from_list(top_tokens_thresholded)
 
 
-
 def compare_probs(full_text_dataset, full_text_preds, top_tokens, top_k, 
-                  model, tokenizer, pipeline, pipeline_parameters, 
-                  device, id2label=None):
-
+                  model, tokenizer, pipeline=None, pipeline_parameters=None, 
+                  id2label=None, device=None):
+    print(device)
     results_top_tokens = predict(top_tokens,
                                  model, tokenizer,                            
                                  top_k=top_k,
-                                 mode='pipeline', text_pipeline=pipeline, 
-                                 pipeline_parameters=pipeline_parameters,
-                                 device=device,
-                                 multi_sample=True)
+                                 is_tokenized=True,
+                                 mode='custom',
+                                 max_length=128,
+                                 multi_sample=True,
+                                 id2label=id2label,
+                                 device=device)
 
     actual_labels = full_text_dataset['label']
     rows = []
-
+    
     for sample_no, (original_result, top_tokens_result) in enumerate(zip(full_text_preds, results_top_tokens)):
-        for item_1, item_2 in zip(original_result, top_tokens_result):
+        for item in original_result:
+
+            full_text_label = item['label']
+            full_text_score = item['score']
+            
+            # For top tokens, get the class probability of full text predicted class as the aim is to evaluate the contribution
+            matched_tuple = next((t for t in top_tokens_result if t[0] == full_text_label), None)
+
+            top_tokens_label = matched_tuple[0]
+            top_tokens_score = matched_tuple[1]
+
             rows.append({
                 'Sample No': sample_no,
                 'Actual Label': id2label[actual_labels[sample_no]],
-                'Pred Label - Full Text': item_1['label'],
-                'Pred Prob - Full Text': item_1['score'],
-                'Pred Label - Top Tokens': item_2['label'],
-                'Pred Prob - Top Tokens': item_2['score']
+                'Pred Label - Full Text': full_text_label,
+                'Pred Prob - Full Text': full_text_score,
+                # 'Pred Label - Top Tokens': top_tokens_label,
+                'Pred Prob - Top Tokens': top_tokens_score
             })
 
     return pd.DataFrame(rows)
 
 
-
 def evaluate_explanations(results_df, ylim=(-0.005, 0.005)):
 
-    ecs = round(results_df['Pred Prob - Top Tokens'].mean(), 3)
+    classification_acc = accuracy_score(results_df['Actual Label'], results_df['Pred Label - Full Text'])
+    print("\nClassification accuracy                             : ", classification_acc)
 
-    print("\nExplanations Contribution Score (ECS)          : ", ecs)
+    ecs_full_text = round(results_df['Pred Prob - Full Text'].mean(), 3)
+    ecs_top_tokens = round(results_df['Pred Prob - Top Tokens'].mean(), 3)
+
+    print("Explanations Contribution Score (ECS) of Full Text  : ", ecs_full_text)
+    print("Explanations Contribution Score (ECS) of Top Tokens : ", ecs_top_tokens)
 
     results_df['Relative Change'] = (results_df['Pred Prob - Top Tokens'] - results_df['Pred Prob - Full Text'])
 
-    # Filter samples with positive relative change
+    # Filter samples with positive change
     positive_changes = results_df[results_df['Relative Change'] > 0]
     positive_orc = round(positive_changes['Relative Change'].mean() * 100, 3)
     
-    # Filter samples with negative relative change
+    # Filter samples with negative change
     negative_changes = results_df[results_df['Relative Change'] < 0]
     negative_orc = round(negative_changes['Relative Change'].mean() * 100, 3)
     
-    print(f"Overall Relative Change (ORC) positive changes :  {positive_orc} %")
-    print(f"Overall Relative Change (ORC) negative changes : {negative_orc} %")
+    print(f"Overall Relative Change (ORC) positive changes      :  {positive_orc} %")
+    print(f"Overall Relative Change (ORC) negative changes      : {negative_orc} %")
 
     plt.figure(figsize=(10, 6))
     plt.bar(positive_changes.index, positive_changes['Relative Change'], color='blue', alpha=0.7, label='Positive Changes')
@@ -203,8 +206,7 @@ def evaluate_explanations(results_df, ylim=(-0.005, 0.005)):
     plt.tight_layout()
     plt.show()
 
-    return ecs, positive_orc, negative_orc
-
+    return classification_acc, ecs_full_text, ecs_top_tokens, positive_orc, negative_orc
 
 
 def analyze_dataset(dataset, figsize_bar, figsize_char, figsize_word, ylim_char, max_val_pos_char, ylim_word, max_val_pos_word, color, name, rotation=0):
@@ -269,7 +271,6 @@ def analyze_dataset(dataset, figsize_bar, figsize_char, figsize_word, ylim_char,
 
     return None
     
-
 
 def clear_gpu_memory():
 

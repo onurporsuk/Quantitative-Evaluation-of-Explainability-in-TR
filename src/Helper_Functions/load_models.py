@@ -5,14 +5,14 @@ def prepare_models(path_model, device, print_classes=False):
     
     model = AutoModelForSequenceClassification.from_pretrained(path_model).to(device)
     config = AutoConfig.from_pretrained(path_model)
-    tokenizer = AutoTokenizer.from_pretrained(path_model, use_fast=True, max_length=128, truncation=True, padding='max_length')
+    tokenizer = AutoTokenizer.from_pretrained(path_model, use_fast=True, max_length=128, padding='max_length', truncation=True)
     
     model = model.eval()
     
     pipeline_text = pipeline(task="text-classification", 
                              model=model,
                              tokenizer=tokenizer,
-                             max_length=128, truncation=True, padding='max_length',
+                             max_length=128, padding='max_length', truncation=True, 
                              device=device)
     
     # Prepare mappings of different labels

@@ -10,7 +10,7 @@ def create_predictor_function(model, tokenizer, device):
     
     def predictor(sample):
         
-        inputs = tokenizer(sample, return_tensors="pt", padding=True, truncation=True, max_length=128)
+        inputs = tokenizer(sample, max_length=128, padding='max_length', truncation=True, return_tensors="pt")
         inputs = {key: value.to(device) for key, value in inputs.items()}
     
         outputs = model(**inputs)
@@ -21,7 +21,6 @@ def create_predictor_function(model, tokenizer, device):
         return probas
     
     return predictor
-
 
 
 def apply_lime(files_path, samples, lime_explainer, predictor, model, tokenizer, file_name, num_features=128, only_load=True):
@@ -36,7 +35,7 @@ def apply_lime(files_path, samples, lime_explainer, predictor, model, tokenizer,
         with torch.no_grad():
             for sample in tqdm(samples['text']):
                 
-                # Create a wrapper function for predictor with only the sample
+                # Create a wrapper function for predictor with only sample
                 predictor_wrapper = lambda x, model=model, tokenizer=tokenizer, predictor=predictor: predictor(x)
                 
                 exp = lime_explainer.explain_instance(sample, predictor_wrapper, num_features=num_features, num_samples=150)
