@@ -108,7 +108,7 @@ def evaluate_classification(full_text_dataset, parameter_set, label2id):
     return full_text_preds
 
 
-def apply_thresholding(top_tokens_samples, tokenizer, threshold):
+def apply_thresholding(top_tokens_samples, threshold):
 
     # Extract top tokens whose values are above threshold
     
@@ -132,7 +132,7 @@ def apply_thresholding(top_tokens_samples, tokenizer, threshold):
 def compare_probs(full_text_dataset, full_text_preds, top_tokens, top_k, 
                   model, tokenizer, pipeline=None, pipeline_parameters=None, 
                   id2label=None, device=None):
-    print(device)
+
     results_top_tokens = predict(top_tokens,
                                  model, tokenizer,                            
                                  top_k=top_k,

@@ -18,7 +18,7 @@
     "path_prob": "Data/Exp_Prob/",
     "path_reports": "Reports/",
     "thresholds": [0.5, 0.6, 0.7],
-    "only_load": true,
+    "only_load": false,
     "device": "cuda",
     "pipeline_parameters": {
         "padding": "max_length",

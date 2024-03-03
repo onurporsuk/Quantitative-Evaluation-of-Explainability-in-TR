@@ -24,6 +24,7 @@ def apply_random(files_path, samples, model, tokenizer, file_name, device, only_
                 rand_values_sample = torch.rand(len(tokenized_text)).tolist()
                 rand_values_sample = pd.DataFrame({"Token": tokenized_text, str(predicted_label): rand_values_sample})
                 rand_values_sample = rand_values_sample.sort_values(by=str(predicted_label), ascending=False)
+                
                 rand_values.append(rand_values_sample)
                 
         pickle.dump(rand_values, open(files_path + f"{file_name}.pkl", 'wb'))

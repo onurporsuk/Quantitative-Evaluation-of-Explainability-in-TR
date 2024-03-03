@@ -108,7 +108,7 @@ def evaluate_classification(full_text_dataset, parameter_set, label2id):
     return full_text_preds
 
 
-def apply_thresholding(top_tokens_samples, tokenizer, threshold):
+def apply_thresholding(top_tokens_samples, threshold):
 
     # Extract top tokens whose values are above threshold
     
