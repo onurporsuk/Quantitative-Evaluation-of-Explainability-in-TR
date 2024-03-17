@@ -38,7 +38,7 @@ def apply_lime(files_path, samples, lime_explainer, predictor, model, tokenizer,
                 # Create a wrapper function for predictor with only sample
                 predictor_wrapper = lambda x, model=model, tokenizer=tokenizer, predictor=predictor: predictor(x)
                 
-                exp = lime_explainer.explain_instance(sample, predictor_wrapper, num_features=num_features, num_samples=150)
+                exp = lime_explainer.explain_instance(sample, predictor_wrapper, num_features=num_features, num_samples=300)
 
                 predicted_class_label = np.argmax(np.array(exp.predict_proba))
                 lime_values_df = pd.DataFrame(exp.as_list(), columns=['Token', str(predicted_class_label)])

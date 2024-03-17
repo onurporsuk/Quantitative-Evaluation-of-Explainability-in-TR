@@ -44,13 +44,10 @@ def predict(text, model, tokenizer,
         results = []
 
         for sample in text:
-
-            # To prevent exceeding specified max length of model
-            sample['text'] = sample['text'][:max_length]
           
             input_ids = torch.tensor([tokenizer.convert_tokens_to_ids(sample['text'])])
             inputs = {"input_ids": input_ids.to(device)}
-
+          
             with torch.no_grad():
                 logits = model(**inputs)[0]
     
@@ -143,9 +140,8 @@ def compare_probs(full_text_dataset, full_text_preds, top_tokens, top_k,
                                  id2label=id2label,
                                  device=device)
 
-    actual_labels = full_text_dataset['label']
     rows = []
-    
+ 
     for sample_no, (original_result, top_tokens_result) in enumerate(zip(full_text_preds, results_top_tokens)):
         for item in original_result:
 
@@ -160,11 +156,14 @@ def compare_probs(full_text_dataset, full_text_preds, top_tokens, top_k,
 
             rows.append({
                 'Sample No': sample_no,
-                'Actual Label': id2label[actual_labels[sample_no]],
+                'Actual Label': id2label[full_text_dataset['label'][sample_no]],
                 'Pred Label - Full Text': full_text_label,
                 'Pred Prob - Full Text': full_text_score,
                 # 'Pred Label - Top Tokens': top_tokens_label,
-                'Pred Prob - Top Tokens': top_tokens_score
+                'Pred Prob - Top Tokens': top_tokens_score,
+                'Top Tokens Probas': [(label, round(score, 3)) for label, score in top_tokens_result],
+                'Top Tokens': top_tokens['text'][sample_no],
+                'Original Text': full_text_dataset['text'][sample_no]
             })
 
     return pd.DataFrame(rows)
@@ -173,7 +172,7 @@ def compare_probs(full_text_dataset, full_text_preds, top_tokens, top_k,
 def evaluate_explanations(results_df, ylim=(-0.005, 0.005)):
 
     classification_acc = accuracy_score(results_df['Actual Label'], results_df['Pred Label - Full Text'])
-    print("\nClassification accuracy                             : ", classification_acc)
+    print("\nClassification accuracy                             : ", round(classification_acc, 3))
 
     ecs_full_text = round(results_df['Pred Prob - Full Text'].mean(), 3)
     ecs_top_tokens = round(results_df['Pred Prob - Top Tokens'].mean(), 3)
@@ -236,19 +235,20 @@ def analyze_dataset(dataset, figsize_bar, figsize_char, figsize_word, ylim_char,
     plt.ylabel('Frequency')
     plt.title('Distribution of Number of Characters in Input Text')
     plt.ylim(0, character_stats.max() * ylim_char)
-    max_value = character_stats.max()
-    plt.text(
-        character_stats.idxmax(),
-        max_value * max_val_pos_char, 
-        f'Max: {max_value}',  
-        ha='center',
-        va='bottom'
-    )
+    # max_value = character_stats.max()
+    # plt.text(
+    #     character_stats.idxmax(),
+    #     max_value * max_val_pos_char, 
+    #     f'Max: {max_value}',  
+    #     ha='center',
+    #     va='bottom'
+    # )
     plt.show()
 
     # Word Statistics
 
     word_stats = dataset['text'].str.split().apply(len)
+    word_stats.to_excel(f"word_stats_{name}.xlsx")  
 
     print("Statistical measures for input text (word-level):\n")
     display(pd.DataFrame(word_stats).describe().round(2))
@@ -259,14 +259,14 @@ def analyze_dataset(dataset, figsize_bar, figsize_char, figsize_word, ylim_char,
     plt.ylabel('Frequency')
     plt.title('Distribution of Number of Words in Input Text')
     plt.ylim(0, word_stats.max() * ylim_word) 
-    max_word_value = word_stats.max()
-    plt.text(
-        word_stats.idxmax(),
-        max_word_value * max_val_pos_word,
-        f'Max: {max_word_value}',
-        ha='center',
-        va='bottom'
-    )
+    # max_word_value = word_stats.max()
+    # plt.text(
+    #     word_stats.idxmax(),
+    #     max_word_value * max_val_pos_word,
+    #     f'Max: {max_word_value}',
+    #     ha='center',
+    #     va='bottom'
+    # )
     plt.show()
 
     return None

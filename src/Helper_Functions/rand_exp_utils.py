@@ -7,10 +7,10 @@ from tqdm.notebook import tqdm
 def apply_random(files_path, samples, model, tokenizer, file_name, device, only_load=True):
     
     if only_load:
-        rand_values = pickle.load(open(files_path + f"{file_name}.pkl", 'rb'))
+        rand_values_all = pickle.load(open(files_path + f"{file_name}.pkl", 'rb'))
 
     else:
-        rand_values = []
+        rand_values_all = []
 
         with torch.no_grad():
             for sample in tqdm(samples['text']):
@@ -25,11 +25,11 @@ def apply_random(files_path, samples, model, tokenizer, file_name, device, only_
                 rand_values_sample = pd.DataFrame({"Token": tokenized_text, str(predicted_label): rand_values_sample})
                 rand_values_sample = rand_values_sample.sort_values(by=str(predicted_label), ascending=False)
                 
-                rand_values.append(rand_values_sample)
+                rand_values_all.append(rand_values_sample)
                 
-        pickle.dump(rand_values, open(files_path + f"{file_name}.pkl", 'wb'))
+        pickle.dump(rand_values_all, open(files_path + f"{file_name}.pkl", 'wb'))
         print(f"File '{file_name}' saved.")
 
-    print(f"'{file_name}' file shape:", len(rand_values))
+    print(f"'{file_name}' file shape:", len(rand_values_all))
 
-    return rand_values
+    return rand_values_all

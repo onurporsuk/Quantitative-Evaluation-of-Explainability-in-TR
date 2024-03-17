@@ -28,7 +28,7 @@ def extract_class_shap_values(tokens, weights, num_classes):
     return top_weights_sorted
 
 
-def apply_shap(files_path, samples, file_name, shap_explainer, full_text_preds, num_classes, only_load=True):
+def apply_shap(files_path, samples, file_name, shap_explainer, num_classes, only_load=True):
 
     if only_load:
         shap_values = pickle.load(open(files_path + f"{file_name}.pkl", 'rb'))
@@ -46,6 +46,11 @@ def apply_shap(files_path, samples, file_name, shap_explainer, full_text_preds, 
 
         # Extract and sort SHAP values for the specified class
         df_sorted = extract_class_shap_values(tokens, weights, num_classes)
-        extracted_class_tokens.append(df_sorted)
 
+        # Although tokenizer and pipeline parameters set for max_length 128, SHAP does not apply this
+        # Hence, top 128 rows were taken based on the score to handle out-of-max length (i.e., unimportant tokens are removed)
+        df_sorted = df_sorted.sort_values(by=df_sorted.columns[1], ascending=False).head(min(128, len(df_sorted)))
+        
+        extracted_class_tokens.append(df_sorted)
+        
     return shap_values, extracted_class_tokens
