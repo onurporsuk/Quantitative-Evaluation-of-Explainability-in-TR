@@ -22,3 +22,9 @@ The article includes:
 - **Experiments**: Evaluation results and performance comparison.
 - **Discussion**: Insights, challenges, and limitations of explainability methods in Turkish.
 - **Conclusion & Future Work**: Summary of findings and directions for future research.
+
+## Citation
+
+If you use this work, please cite as:
+
+Porsuk, O., Yıldırım, S., & Başar, A. (2025). Evaluation of Local Explainability Methods in Turkish Text Classification Tasks. In K. Arai (Ed.), *Intelligent Computing. CompCom 2025. Lecture Notes in Networks and Systems* (Vol. 1423). Springer, Cham. https://doi.org/10.1007/978-3-031-92602-0_30
